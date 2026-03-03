@@ -1,0 +1,150 @@
+:root {
+  --night-sky: linear-gradient(to bottom, #001d3d, #003566);
+  --lantern-color: rgba(255, 183, 3, 0.8);
+  --text-color: #ffd60a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--night-sky);
+  color: var(--text-color);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#root {
+  height: 100%;
+}
+
+/* Background & Lanterns */
+.night-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.lantern-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lantern {
+  position: absolute;
+  bottom: -100px;
+  width: 30px;
+  height: 45px;
+  background: var(--lantern-color);
+  border-radius: 8px 8px 15px 15px;
+  box-shadow: 0 0 15px #ffc300, 0 0 30px #ffb703;
+  animation: floatUp linear infinite;
+}
+
+.lantern::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 10px;
+  background: #ffc300;
+  border-radius: 2px;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-110vh) translateX(30px) rotate(15deg);
+    opacity: 0;
+  }
+}
+
+/* Content */
+.content-wrapper {
+  z-index: 10;
+  text-align: center;
+  width: 100%;
+  max-width: 500px;
+  margin-top: 40px;
+}
+
+.poem {
+  font-size: 1.2rem;
+  line-height: 2;
+  margin-bottom: 20px;
+  letter-spacing: 4px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  display: inline-block;
+  color: #ffc300;
+  text-shadow: 0 0 5px rgba(255, 214, 10, 0.5);
+}
+
+.wishes {
+  margin-top: 10px;
+  font-size: 1rem;
+  color: #fff;
+  opacity: 0.9;
+}
+
+/* Photo Gallery */
+.gallery-section {
+  width: 100%;
+  margin-top: 30px;
+  z-index: 10;
+}
+
+.swiper {
+  width: 100%;
+  padding-bottom: 50px !important;
+}
+
+.polaroid-card {
+  background: white;
+  padding: 10px 10px 30px 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  transform: rotate(-2deg);
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.polaroid-card img {
+  width: 100%;
+  height: 350px;
+  object-fit: cover;
+  border: 1px solid #eee;
+}
+
+.polaroid-caption {
+  font-family: 'cursive', serif;
+  color: #333;
+  margin-top: 15px;
+  font-size: 0.9rem;
+}
