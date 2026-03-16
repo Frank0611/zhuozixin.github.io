@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关系情感分析报告 · Frank × cmt</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root {
+    --blue:   #3B82F6;
+    --red:    #EF4444;
+    --purple: #7C3AED;
+    --green:  #16A34A;
+    --bg:     #0F172A;
+    --card:   #1E293B;
+    --border: #334155;
+    --text:   #E2E8F0;
+    --muted:  #94A3B8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    line-height: 1.7;
+  }
+  /* ── Header ── */
+  .hero {
+    background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%);
+    padding: 60px 24px 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero h1 {
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    font-weight: 700;
+    background: linear-gradient(120deg, #93C5FD, #C4B5FD, #FCA5A5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .hero p { color: var(--muted); font-size: .95rem; }
+  .meta-badges {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center; margin-top: 16px;
+  }
+  .badge {
+    background: rgba(255,255,255,.07);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: .8rem;
+    color: var(--muted);
+  }
+  /* ── Layout ── */
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+  }
+  /* ── Stats row ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 32px 0;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    background: linear-gradient(120deg, #93C5FD, #C4B5FD);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-label { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+  /* ── Section ── */
+  .section {
+    margin-top: 48px;
+  }
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #C4B5FD;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: "";
+    display: inline-block;
+    width: 4px; height: 18px;
+    background: linear-gradient(180deg, #93C5FD, #C4B5FD);
+    border-radius: 2px;
+  }
+  /* ── Chart card ── */
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .chart-subtitle {
+    font-size: .82rem;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .chart-wrap { width: 100%; height: 420px; }
+  .chart-wrap-sm { width: 100%; height: 340px; }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .83rem;
+  }
+  th {
+    background: rgba(99,102,241,.2);
+    color: #C4B5FD;
+    padding: 10px 12px;
+    text-align: left;
+    white-space: nowrap;
+    position: sticky; top: 0;
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:hover td { background: rgba(255,255,255,.03); }
+  .week-cell { text-align: center; font-weight: 600; color: #93C5FD; }
+  .date-small { font-size: .75rem; color: var(--muted); font-weight: 400; }
+  .emotion {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+  .frank-emotion { background: rgba(59,130,246,.2); color: #93C5FD; }
+  .other-emotion { background: rgba(239,68,68,.2);  color: #FCA5A5; }
+  .green-text { color: #4ADE80; }
+  .orange-text { color: #FBBF24; }
+  .signal-cell { color: var(--muted); font-size: .78rem; }
+  .summary-cell { max-width: 280px; font-size: .8rem; color: var(--muted); }
+  /* ── Theory section ── */
+  .theory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .theory-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid #C4B5FD;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .theory-card h3 {
+    font-size: .95rem;
+    color: #C4B5FD;
+    margin-bottom: 10px;
+  }
+  .theory-card p {
+    font-size: .83rem;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  /* ── Conclusion ── */
+  .conclusion-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .conclusion-list li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: .88rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .ci { font-size: 1.1rem; flex-shrink: 0; }
+  .disclaimer {
+    margin-top: 40px;
+    padding: 16px 20px;
+    background: rgba(251,191,36,.05);
+    border: 1px solid rgba(251,191,36,.2);
+    border-radius: 10px;
+    font-size: .8rem;
+    color: var(--muted);
+  }
+  .footer {
+    text-align: center;
+    margin-top: 60px;
+    color: var(--muted);
+    font-size: .78rem;
+    padding-bottom: 40px;
+  }
+  .nav-back {
+    display: inline-block;
+    margin-bottom: 20px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-size: .82rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: background .2s;
+  }
+  .nav-back:hover { background: rgba(255,255,255,.1); color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>💬 关系情感分析报告</h1>
+  <p>Frank × cmt &nbsp;·&nbsp; 微信对话数据分析</p>
+  <div class="meta-badges">
+    <span class="badge">📅 2025-12-15 ~ 2026-03-09</span>
+    <span class="badge">💬 24,119 条文本消息</span>
+    <span class="badge">📊 13 周有效数据</span>
+    <span class="badge">🤖 Claude Opus 4.6 分析</span>
+    <span class="badge">📖 Gottman + 依恋理论框架</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div style="margin-top:24px">
+    <a class="nav-back" href="/">← 返回元宵节页面</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value">8.0<small style="font-size:1rem">/10</small></div>
+      <div class="stat-label">关系健康度均值</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">12.8<small style="font-size:1rem">:1</small></div>
+      <div class="stat-label">Gottman 正负比均值<br><span style="color:#4ADE80;font-size:.7rem">标准 ≥ 5:1</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">0.71</div>
+      <div class="stat-label">Frank 平均情感得分</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">0.64</div>
+      <div class="stat-label">对方平均情感得分</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">r=0.51</div>
+      <div class="stat-label">情感同步相关系数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="font-size:1.4rem">零出现</div>
+      <div class="stat-label">Gottman 四骑士信号</div>
+    </div>
+  </div>
+
+  <!-- Chart 1: Sentiment Timeline -->
+  <div class="section">
+    <div class="section-title">双方情感分数时间线</div>
+    <div class="chart-card">
+      <p class="chart-subtitle">悬停查看每周情绪标注与关键时刻描述 · 分数区间 0（中性）~ 1（极正向）</p>
+      <div id="chart1" class="chart-wrap"></div>
+    </div>
+  </div>
+
+  <!-- Chart 2: Health + Ratio -->
+  <div class="section">
+    <div class="section-title">关系健康度 与 Gottman 正负互动比</div>
+    <div class="chart-card">
+      <p class="chart-subtitle">柱形（左轴）= 关系健康度 · 折线（右轴）= Gottman 正负比 · 绿色虚线 = 5:1 健康基准</p>
+      <div id="chart2" class="chart-wrap"></div>
+    </div>
+  </div>
+
+  <!-- Chart 3+4 -->
+  <div class="section">
+    <div class="section-title">情感相关性分析</div>
+    <div class="chart-card">
+      <p class="chart-subtitle">横轴 = Frank 情感得分 · 纵轴 = 对方得分 · 颜色深浅 = 关系健康度 · 悬停查看周次详情</p>
+      <div id="chart3" class="chart-wrap"></div>
+    </div>
+  </div>
+
+  <!-- Weekly Detail Table -->
+  <div class="section">
+    <div class="section-title">逐周分析明细</div>
+    <div class="chart-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>周次</th>
+              <th>Frank情绪</th>
+              <th>对方情绪</th>
+              <th>健康度</th>
+              <th>Gottman比</th>
+              <th>Frank正向信号</th>
+              <th>对方正向信号</th>
+              <th>周摘要</th>
+            </tr>
+          </thead>
+          <tbody>
+        <tr>
+          <td class="week-cell">W1<br><span class="date-small">12/15</span></td>
+          <td><span class="emotion frank-emotion">关切</span><br><small>0.72</small></td>
+          <td><span class="emotion other-emotion">愉悦</span><br><small>0.68</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>9.5:1</b></td>
+          <td class="signal-cell">支持、深情、幽默、宽慰</td>
+          <td class="signal-cell">感激、幽默、好奇</td>
+          <td class="summary-cell">本周双方互动轻松愉快、正向信号密集，Frank持续输出关心与陪伴，cmt以欣赏和主动靠近回应，关系呈现高安全感、高亲密度的良性循环状态。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W2<br><span class="date-small">12/22</span></td>
+          <td><span class="emotion frank-emotion">温暖</span><br><small>0.72</small></td>
+          <td><span class="emotion other-emotion">愉悦</span><br><small>0.65</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>15.0:1</b></td>
+          <td class="signal-cell">关心、幽默、好奇、深情</td>
+          <td class="signal-cell">关心、幽默、支持、好奇</td>
+          <td class="summary-cell">本周双方保持极高频率的日常分享与幽默互动，Frank以细腻的关心和主动约见展现投入感，cmt以旁听组会和积极回应给予对等的情感参与，关系处于轻松亲密、稳定升温的健康状态。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W3<br><span class="date-small">12/29</span></td>
+          <td><span class="emotion frank-emotion">温暖</span><br><small>0.72</small></td>
+          <td><span class="emotion other-emotion">轻松</span><br><small>0.62</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>18.0:1</b></td>
+          <td class="signal-cell">关怀、幽默、深情、好奇</td>
+          <td class="signal-cell">幽默、关怀、支持</td>
+          <td class="summary-cell">跨年周双方保持了极高密度的日常交流（1858条），以轻松幽默的互动为主基调，Frank主动展露情感脆弱面而cmt以关怀和俏皮回应，双方均无负向信号出现，关系处于舒适稳定、安全感充足的良性运转阶段。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W4<br><span class="date-small">01/05</span></td>
+          <td><span class="emotion frank-emotion">温暖</span><br><small>0.62</small></td>
+          <td><span class="emotion other-emotion">安稳</span><br><small>0.55</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>15.0:1</b></td>
+          <td class="signal-cell">深情、幽默、好奇、关心</td>
+          <td class="signal-cell">关心、幽默、宽慰、支持</td>
+          <td class="summary-cell">双方处于稳定温暖的日常陪伴状态，互动以分享生活细节、相互关心和轻松打趣为主，cmt在深度话题上的敞开与Frank的共情回应体现了较高的情感安全感，未见任何负向互动信号。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W5<br><span class="date-small">01/12</span></td>
+          <td><span class="emotion frank-emotion">关怀</span><br><small>0.62</small></td>
+          <td><span class="emotion other-emotion">疲惫</span><br><small>0.38</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>7.2:1</b></td>
+          <td class="signal-cell">支持、深情、幽默、好奇</td>
+          <td class="signal-cell">宽慰、支持、幽默</td>
+          <td class="summary-cell">双方保持高频且深入的日常沟通，Frank在情感支持和浪漫表达上持续给予能量，cmt虽受工作倦怠困扰但展现出极强的情绪敏感度与回应能力，两人在深夜坦诚讨论期待与失落，关系处于安全依附、相互滋养的健康状态。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W6<br><span class="date-small">01/19</span></td>
+          <td><span class="emotion frank-emotion">深情</span><br><small>0.78</small></td>
+          <td><span class="emotion other-emotion">信赖</span><br><small>0.68</small></td>
+          <td class="green-text"><b>9/10</b></td>
+          <td><b>15.0:1</b></td>
+          <td class="signal-cell">深情、支持、幽默、好奇、感激</td>
+          <td class="signal-cell">深情、好奇、支持</td>
+          <td class="summary-cell">本周双方呈现高密度、高质量的情感互动，Frank以温柔承接回应cmt的脆弱袒露，cmt以未来期许回馈Frank的深情，关系处于深度信任构建与情感融合的上升期。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W7<br><span class="date-small">01/26</span></td>
+          <td><span class="emotion frank-emotion">深情</span><br><small>0.72</small></td>
+          <td><span class="emotion other-emotion">依恋</span><br><small>0.65</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>9.2:1</b></td>
+          <td class="signal-cell">深情、幽默、好奇、支持</td>
+          <td class="signal-cell">感激、深情、幽默、支持</td>
+          <td class="summary-cell">双方处于高频且高质量的沟通状态，cmt以极具建设性的方式表达依恋焦虑，Frank以稳定的深情和日常陪伴予以回应，关系在磨合期展现出健康的情感安全基地特征。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W8<br><span class="date-small">02/02</span></td>
+          <td><span class="emotion frank-emotion">温情</span><br><small>0.72</small></td>
+          <td><span class="emotion other-emotion">眷恋</span><br><small>0.78</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>12.0:1</b></td>
+          <td class="signal-cell">深情、幽默、好奇、支持</td>
+          <td class="signal-cell">深情、幽默、好奇、支持</td>
+          <td class="summary-cell">春节假期期间两人互动极为密切（周消息量高达2597条），以共同出行、礼物交换和深夜长聊为载体，双方均表现出高度的情感投入和依恋表达，关系处于甜蜜升温的健康阶段，几乎未检测到任何负向互动信号。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W9<br><span class="date-small">02/09</span></td>
+          <td><span class="emotion frank-emotion">深情</span><br><small>0.72</small></td>
+          <td><span class="emotion other-emotion">坦诚</span><br><small>0.48</small></td>
+          <td class="green-text"><b>7/10</b></td>
+          <td><b>6.5:1</b></td>
+          <td class="signal-cell">深情、支持、感激、幽默</td>
+          <td class="signal-cell">支持、幽默、好奇</td>
+          <td class="summary-cell">春节期间两人保持高密度沟通与一次线下见面，cmt坦诚提出线上线下割裂感的核心议题，Frank以深情和理解回应；见面后亲密度明显升温（'没亲够''喜欢线下见面'），关系整体积极但'关系公开化'和'线下相处频率不足'仍是需要共同面对的结构性挑战。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W10<br><span class="date-small">02/16</span></td>
+          <td><span class="emotion frank-emotion">温柔</span><br><small>0.72</small></td>
+          <td><span class="emotion other-emotion">投入</span><br><small>0.76</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>9.2:1</b></td>
+          <td class="signal-cell">深情、支持、幽默、好奇</td>
+          <td class="signal-cell">深情、好奇、幽默、支持</td>
+          <td class="summary-cell">春节期间虽各自归家，双方通过高频深夜长谈持续深化情感连接，在关系需求、内心恐惧等议题上展现出难得的坦诚与相互凝视，关系正处于积极的深度探索期。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W11<br><span class="date-small">02/23</span></td>
+          <td><span class="emotion frank-emotion">眷恋</span><br><small>0.72</small></td>
+          <td><span class="emotion other-emotion">依恋</span><br><small>0.68</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>14.0:1</b></td>
+          <td class="signal-cell">深情、支持、幽默、好奇、关怀</td>
+          <td class="signal-cell">深情、感激、幽默、支持</td>
+          <td class="summary-cell">异地相处中双方以高频的思念表达、生活细节分享和情绪支持维系着深厚联结，正向互动远超负向，关系处于温暖稳固的状态。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W12<br><span class="date-small">03/02</span></td>
+          <td><span class="emotion frank-emotion">温暖</span><br><small>0.78</small></td>
+          <td><span class="emotion other-emotion">依恋</span><br><small>0.72</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>18.0:1</b></td>
+          <td class="signal-cell">深情、幽默、支持、关怀</td>
+          <td class="signal-cell">关怀、好奇、幽默</td>
+          <td class="summary-cell">元宵节异地的一周，双方在高频日常分享中保持了细腻的相互关怀与深情，Frank的主动表白与cmt的柔软依恋形成良性情感互哺，关系温度稳定偏高，无任何冲突信号。</td>
+        </tr>
+        <tr>
+          <td class="week-cell">W13<br><span class="date-small">03/09</span></td>
+          <td><span class="emotion frank-emotion">投入</span><br><small>0.65</small></td>
+          <td><span class="emotion other-emotion">体贴</span><br><small>0.75</small></td>
+          <td class="green-text"><b>8/10</b></td>
+          <td><b>18.0:1</b></td>
+          <td class="signal-cell">深情、支持、幽默</td>
+          <td class="signal-cell">关心、宽慰、支持、幽默</td>
+          <td class="summary-cell">外部工作压力未侵蚀关系质量，双方以高度默契完成了从"各自忙碌"到"共同期待出行"的切换，体贴与信任贯穿全周，是一段在日常琐碎中稳定输出温暖的健康互动。</td>
+        </tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theory -->
+  <div class="section">
+    <div class="section-title">分析理论框架</div>
+    <div class="theory-grid">
+      <div class="theory-card">
+        <h3>📐 Gottman 关系理论</h3>
+        <p>John Gottman 通过数十年对数千对伴侣的追踪研究，提出正负互动比应维持 <b>≥ 5:1</b>（黄金比例）。负向信号中，"四骑士"（批评、鄙视、防御、冷战）是关系破裂的最强预测因子。本报告正负比均值 <b>12.8:1</b>，是标准的 <b>2.6 倍</b>。</p>
+      </div>
+      <div class="theory-card">
+        <h3>🔗 依恋理论（EFT 框架）</h3>
+        <p>基于 Bowlby & Ainsworth 依恋理论，及 Johnson 的情绪聚焦疗法（EFT）。分析关注三类依恋行为：安全型（能表达脆弱、被接纳后情绪平复）、焦虑型（需频繁确认）、回避型（情绪封闭）。本报告双方均呈现<b>安全型依恋</b>特征。</p>
+      </div>
+      <div class="theory-card">
+        <h3>🔄 情感同步性</h3>
+        <p>社会心理学发现，长期亲密关系中伴侣情绪呈正相关。高同步（r 接近 1）表明深度情感联结；去同步化提示沟通需求未被满足或外部压力不对等。本报告情感同步相关系数 <b>r = 0.51</b>，属中度显著正相关。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conclusion -->
+  <div class="section">
+    <div class="section-title">分析结论</div>
+    <ul class="conclusion-list">
+      <li><span class="ci">💚</span><div><b>关系健康度优秀：</b>平均健康度 8.0/10，13周中12周达到8分或以上，全部超过 Gottman 7分健康基准。</div></li>
+      <li><span class="ci">⚖️</span><div><b>Gottman 正负比显著健康：</b>均值 12.8:1，是黄金比例（5:1）的 2.6 倍，处于 Gottman 所描述的"蓬勃关系"（Flourishing Relationship）区间。</div></li>
+      <li><span class="ci">🔗</span><div><b>安全型依恋特征明显：</b>双方均展示出成熟的情感表达与回应能力。对方能坦诚表达脆弱与疲惫（W5/W9），Frank 以稳定情绪一致性接纳并回应，符合 EFT 定义的"安全基地"功能。</div></li>
+      <li><span class="ci">🔄</span><div><b>高度情感同步（r = 0.51）：</b>双方情绪状态相互影响，表明深度情感联结已建立。W5/W9 的去同步化源于对方外部压力（学业/工作），属外因扰动，非关系内部矛盾。</div></li>
+      <li><span class="ci">🚫</span><div><b>四骑士信号零出现：</b>在全部13周分析中，Gottman 定义的四种最具破坏力的负向沟通模式（批评、鄙视、防御、冷战）均未被检测到。</div></li>
+      <li><span class="ci">⚠️</span><div><b>关注点：</b>Frank 情感得分持续稍高于对方（均值差 0.06），标准差更低（0.050 vs 0.115）。长期需注意避免演变为"稳定输出者/情绪波动者"的固化模式，保持双向需求的平等表达。</div></li>
+    </ul>
+  </div>
+
+  <div class="disclaimer">
+    ⚠️ <b>方法论局限：</b>本分析基于文本消息的语义采样（每周最多120条），Claude 模型对语境、反讽、方言等理解可能存在误差。情感得分为模型估计值，不构成临床诊断依据。参考文献：Gottman (1999) <i>The Seven Principles for Making Marriage Work</i>；Johnson (2004) <i>Hold Me Tight</i>；Ainsworth et al. (1978) <i>Patterns of Attachment</i>。
+  </div>
+
+  <div class="footer">
+    由 Claude Opus 4.6 分析生成 · 数据来源：微信聊天记录（wetrace 导出）· 生成日期：2026-03-16
+  </div>
+
+</div>
+
+<script>
+const D = {"c1_frank": {"x": ["W1·12/15", "W2·12/22", "W3·12/29", "W4·01/05", "W5·01/12", "W6·01/19", "W7·01/26", "W8·02/02", "W9·02/09", "W10·02/16", "W11·02/23", "W12·03/02", "W13·03/09"], "y": [0.72, 0.72, 0.72, 0.62, 0.62, 0.78, 0.72, 0.72, 0.72, 0.72, 0.72, 0.78, 0.65], "mode": "lines+markers", "name": "Frank", "line": {"color": "#3B82F6", "width": 2.5}, "marker": {"size": 9, "symbol": "circle"}, "text": ["W1 12/15<br>情绪：关切<br>得分：0.72<br>Frank全周表现出持续的主动关心，从提议帮忙活动、叮嘱对方多休息，到'你是最棒的小朋友''那我包每天运动放松的'，展现出稳定的情感输出和陪伴意愿。'可爱的不能轻易给出去'等话语带有轻微的暧昧与俏皮。", "W2 12/22<br>情绪：温暖<br>得分：0.72<br>Frank主动关心cmt的身体和生活（'你自己在家保重身体''可以让你妈寄'），记住cmt的饮食习惯（'你也挺喜欢吃面的'），主动发起线下约会邀请（'我们明天下午龙华寺见吗'），并用'奖励你一个月亮'等方式传递小而持续的深情。", "W3 12/29<br>情绪：温暖<br>得分：0.72<br>Frank本周情感表达丰富且主动：既有日常关心（'别又感冒了'、'你最近还有没有半夜做梦醒来'），也敢于展露脆弱面（'我压力大的时候听这个常常会流泪'），并积极分享喜欢的歌曲，还给予cmt肯定（'那太好了 你做的很对'），整体呈现出高投入、高安全感的状态。", "W4 01/05<br>情绪：温暖<br>得分：0.62<br>Frank对cmt表达了柔和的欣赏（'你还是温柔善良大于酷酷'），在cmt分享家人离世经历时给予共情回应，日常中频繁关心对方作息（'你晚上睡觉安稳吗'、'这么晚'），并用'cmt居然好这一口！''原来cmt这么好哄'等俏皮话维持亲密氛围。", "W5 01/12<br>情绪：关怀<br>得分：0.62<br>在cmt工作压力大时主动给予疏导建议（'如果你一直陷进去'），深夜主动表达爱意（'我应该在南京东路上大喊我zzx很喜欢cmt'），日常关心她的运动和休息，并坦诚分享对未来的期望（'还挺期望有孩子'）。", "W6 01/19<br>情绪：深情<br>得分：0.78<br>Frank在cmt袒露童年缺爱经历后温柔回应'从小没人疼的cmt让我来好好疼'，展现强烈的保护欲与情感承接能力；同时以'昨晚我梦见你了''我觉得你的角度也给了我很大的启发'传递思念与尊重，在关系中兼具深情与理性欣赏。", "W7 01/26<br>情绪：深情<br>得分：0.72<br>直接表达'爱你陈梦婷'，主动分享日常生活与自我反思（'也反思了一下我自己'），用亲密语言（'给个亲亲''嘻嘻'）持续回应对方的情感需求，整体投入度高且稳定。", "W8 02/02<br>情绪：温情<br>得分：0.72<br>Frank在本周展现出明显的亲密推进意愿，包括'教你亲亲好了''明天起来就能看到我了'等深情回应，同时用'第一次和对象从家出发到上海'标记里程碑感，并以'以后得给你送个护腰神器'等细节体现日常关怀。", "W9 02/09<br>情绪：深情<br>得分：0.72<br>Frank表现出明显的亲密渴望（'没亲够''睡呀宝宝'）和真诚的感恩（'有你真好'），在春节走亲访友期间保持高频沟通，主动关心cmt的休息和情绪，展现了稳定的情感投入。", "W10 02/16<br>情绪：温柔<br>得分：0.72<br>以'你在我眼中很美好'直接表达爱意，深夜主动反思'我似乎很少提过我的需求'，展现情感坦诚与自我觉察；春节期间持续关心对方作息与安全。", "W11 02/23<br>情绪：眷恋<br>得分：0.72<br>分别后以'离别 万千愁绪'表达不舍，深夜主动说'想你'回应对方情感；在cmt工作低落时用'上班也能践行你的理想主义'给予鼓励，日常中持续关心对方饮食起居。", "W12 03/02<br>情绪：温暖<br>得分：0.78<br>Frank多次主动表达深情（'午安亲爱的''盖好小被子''元宵佳节只能和你同乐'），提到在吃cmt送的巧克力，主动提议'后面我们再补一个元宵'，并在cmt表达工作压力时及时给出情感支撑（'压力太大可以找我倾诉'），整体呈现出稳定、温柔且有回应性的伴侣状态。", "W13 03/09<br>情绪：投入<br>得分：0.65<br>虽被周报和PPT压得疲惫，但仍主动承担旅行规划（研究路线、订酒店、对比方案），深夜用\"晚安亲爱的\"表达歉意与爱意，展现了在高压下依然优先维护关系的意识。"], "hovertemplate": "%{text}<extra>Frank</extra>"}, "c1_other": {"x": ["W1·12/15", "W2·12/22", "W3·12/29", "W4·01/05", "W5·01/12", "W6·01/19", "W7·01/26", "W8·02/02", "W9·02/09", "W10·02/16", "W11·02/23", "W12·03/02", "W13·03/09"], "y": [0.68, 0.65, 0.62, 0.55, 0.38, 0.68, 0.65, 0.78, 0.48, 0.76, 0.68, 0.72, 0.75], "mode": "lines+markers", "name": "对方 (cmt)", "line": {"color": "#EF4444", "width": 2.5}, "marker": {"size": 9, "symbol": "square"}, "text": ["W1 12/15<br>情绪：愉悦<br>得分：0.68<br>cmt对Frank给予了高质量的正向反馈——'我真为你感到骄傲''你这么贴心真的容易被女生误解的'，同时主动提出'你多拉我出来运动''等我学完架子鼓就去学乒乓球'，表达了持续靠近和共同活动的意愿。", "W2 12/22<br>情绪：愉悦<br>得分：0.65<br>cmt主动关心Frank的作息与工作状态（'你有午睡吗''还在干活？'），旁听Frank的组会展现出对其学术世界的深度参与，并用'我喜欢这种给足情绪价值的'直接表达对情感互动质量的认可；整体风格以俏皮打趣为主（'看到你这么忙我就放心了''你别吐一地就行'），轻松自然。", "W3 12/29<br>情绪：轻松<br>得分：0.62<br>cmt以俏皮幽默回应居多（'一直用打球来迷惑我'、'充一万送一千您要吗'），同时也展现关心（'没饿晕吧'、'你早点睡吧晚安'），对Frank分享的情感内容有真诚回应（'不过你确实给我提供了一个视角'、'但我真的不敢听'），虽然表达略含蓄但参与度高。", "W4 01/05<br>情绪：安稳<br>得分：0.55<br>cmt多处展现细腻关怀（'今晚还要加班吗'、'请喝水'、'咖啡店开了吗'、'别太晚了'），在谈及家人离世时展现出成熟而通透的生死观（'丧事就是多来一个人就多一份宽慰'），并用'就不能是因为漂亮的小姐姐'等俏皮话与Frank互动。", "W5 01/12<br>情绪：疲惫<br>得分：0.38<br>工作压力明显（'无心工作'、'意义感的缺失'），但展现出细腻的情感觉察力（'我感觉你好像不是很高兴'），并在深夜对话中肯定Frank的情绪表达能力（'在感到失落的时候，你能说出来'），同时保持日常关心（'能不能注意安全'、'别走着走着睡着了'）。", "W6 01/19<br>情绪：信赖<br>得分：0.68<br>cmt主动表达'希望我们能一起看到2026年的初雪''也让我们堆堆雪人'等对共同未来的期待；更罕见地袒露童年被长辈忽视的创伤经历，显示对Frank高度的情感信任与安全感。", "W7 01/26<br>情绪：依恋<br>得分：0.65<br>周初主动且成熟地拆解安全感议题，肯定Frank给予安全感的两个具体行为；坦言'你对我很重要'和'抱抱'，同时诚实暴露适应期焦虑（'我还没有很适应这种转变'、洗澡后的内心纠结），但均以建设性沟通而非指责方式呈现。", "W8 02/02<br>情绪：眷恋<br>得分：0.78<br>cmt说出'和你见面之后的第二天会格外想你'是本周最具情感浓度的表达，主动袒露依恋感；同时对Frank的家庭生活（对联、阿姨零食）表现出自然的融入兴趣，还为Frank买了礼物，整体呈现高投入状态。", "W9 02/09<br>情绪：坦诚<br>得分：0.48<br>cmt发出一段高质量的关系反思——坦承线上线下的'割裂感'和线下的尴尬，归因于见面太少和对'被发现'的顾虑，这是非常健康的脆弱表达而非指责；同时因工作（改作文）心情低落，但周末见面后表达了'喜欢线下见面'的正向转变。", "W10 02/16<br>情绪：投入<br>得分：0.76<br>'我在更认真更用心地看着你了'是本周最强情感信号，表达对关系的郑重投入；'舍不得睡觉'和'抱抱'传递出强烈的亲近渴望；'我可不是在情感方面会委屈自己的人'则展现出健康的自我边界意识。", "W11 02/23<br>情绪：依恋<br>得分：0.68<br>坦诚表达'我都不知道怎么回馈你的爱'和'想你''想见'，情感表露直接而真切；工作压力下有短暂低落（'现在好悲伤''不想上班'），但在Frank鼓励后迅速转为'明天上班有斗志了'，并主动规划见面行程和餐食安排。", "W12 03/02<br>情绪：依恋<br>得分：0.72<br>cmt主动分享日常（打卡、追剧、旧书市场）并频繁关心Frank的饮食和状态（'很饿了吧''吃上饭了吗''风大吗'），'我一个人睡觉不可以'流露对Frank陪伴的渴望，'今晚的月亮你看到了吗'以浪漫方式表达异地思念，整体展现出活泼、依恋且情感开放的一面。", "W13 03/09<br>情绪：体贴<br>得分：0.75<br>反复关心Frank的身体和状态（催吃饭、提醒别太紧张、提出打电话陪伴），深夜一句\"没事，当然能理解啦，宝宝早点休息\"展现了高情商的情绪接纳，旅行计划上完全信任配合。"], "hovertemplate": "%{text}<extra>cmt</extra>"}, "c1_summary": {"x": ["W1·12/15", "W2·12/22", "W3·12/29", "W4·01/05", "W5·01/12", "W6·01/19", "W7·01/26", "W8·02/02", "W9·02/09", "W10·02/16", "W11·02/23", "W12·03/02", "W13·03/09"], "y": [0.7, 0.685, 0.6699999999999999, 0.585, 0.5, 0.73, 0.685, 0.75, 0.6, 0.74, 0.7, 0.75, 0.7], "mode": "markers", "name": "周摘要", "marker": {"size": 1, "opacity": 0}, "text": ["本周双方互动轻松愉快、正向信号密集，Frank持续输出关心与陪伴，cmt以欣赏和主动靠近回应，关系呈现高安全感、高亲密度的良性循环状态。", "本周双方保持极高频率的日常分享与幽默互动，Frank以细腻的关心和主动约见展现投入感，cmt以旁听组会和积极回应给予对等的情感参与，关系处于轻松亲密、稳定升温的健康状态。", "跨年周双方保持了极高密度的日常交流（1858条），以轻松幽默的互动为主基调，Frank主动展露情感脆弱面而cmt以关怀和俏皮回应，双方均无负向信号出现，关系处于舒适稳定、安全感充足的良性运转阶段。", "双方处于稳定温暖的日常陪伴状态，互动以分享生活细节、相互关心和轻松打趣为主，cmt在深度话题上的敞开与Frank的共情回应体现了较高的情感安全感，未见任何负向互动信号。", "双方保持高频且深入的日常沟通，Frank在情感支持和浪漫表达上持续给予能量，cmt虽受工作倦怠困扰但展现出极强的情绪敏感度与回应能力，两人在深夜坦诚讨论期待与失落，关系处于安全依附、相互滋养的健康状态。", "本周双方呈现高密度、高质量的情感互动，Frank以温柔承接回应cmt的脆弱袒露，cmt以未来期许回馈Frank的深情，关系处于深度信任构建与情感融合的上升期。", "双方处于高频且高质量的沟通状态，cmt以极具建设性的方式表达依恋焦虑，Frank以稳定的深情和日常陪伴予以回应，关系在磨合期展现出健康的情感安全基地特征。", "春节假期期间两人互动极为密切（周消息量高达2597条），以共同出行、礼物交换和深夜长聊为载体，双方均表现出高度的情感投入和依恋表达，关系处于甜蜜升温的健康阶段，几乎未检测到任何负向互动信号。", "春节期间两人保持高密度沟通与一次线下见面，cmt坦诚提出线上线下割裂感的核心议题，Frank以深情和理解回应；见面后亲密度明显升温（'没亲够''喜欢线下见面'），关系整体积极但'关系公开化'和'线下相处频率不足'仍是需要共同面对的结构性挑战。", "春节期间虽各自归家，双方通过高频深夜长谈持续深化情感连接，在关系需求、内心恐惧等议题上展现出难得的坦诚与相互凝视，关系正处于积极的深度探索期。", "异地相处中双方以高频的思念表达、生活细节分享和情绪支持维系着深厚联结，正向互动远超负向，关系处于温暖稳固的状态。", "元宵节异地的一周，双方在高频日常分享中保持了细腻的相互关怀与深情，Frank的主动表白与cmt的柔软依恋形成良性情感互哺，关系温度稳定偏高，无任何冲突信号。", "外部工作压力未侵蚀关系质量，双方以高度默契完成了从\"各自忙碌\"到\"共同期待出行\"的切换，体贴与信任贯穿全周，是一段在日常琐碎中稳定输出温暖的健康互动。"], "hovertemplate": "摘要：%{text}<extra></extra>", "showlegend": false}, "c2_health": {"x": ["W1·12/15", "W2·12/22", "W3·12/29", "W4·01/05", "W5·01/12", "W6·01/19", "W7·01/26", "W8·02/02", "W9·02/09", "W10·02/16", "W11·02/23", "W12·03/02", "W13·03/09"], "y": [8.0, 8.0, 8.0, 8.0, 8.0, 9.0, 8.0, 8.0, 7.0, 8.0, 8.0, 8.0, 8.0], "type": "bar", "name": "关系健康度", "marker": {"color": ["#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A", "#16A34A"], "opacity": 0.8}, "text": ["8", "8", "8", "8", "8", "9", "8", "8", "7", "8", "8", "8", "8"], "textposition": "outside", "hovertemplate": "W%{x}<br>健康度：%{y}/10<extra></extra>", "yaxis": "y"}, "c2_ratio": {"x": ["W1·12/15", "W2·12/22", "W3·12/29", "W4·01/05", "W5·01/12", "W6·01/19", "W7·01/26", "W8·02/02", "W9·02/09", "W10·02/16", "W11·02/23", "W12·03/02", "W13·03/09"], "y": [9.5, 15.0, 18.0, 15.0, 7.2, 15.0, 9.2, 12.0, 6.5, 9.2, 14.0, 18.0, 18.0], "mode": "lines+markers", "name": "Gottman 正负比", "line": {"color": "#7C3AED", "width": 2.5}, "marker": {"size": 8, "symbol": "diamond"}, "text": ["9.5:1", "15.0:1", "18.0:1", "15.0:1", "7.2:1", "15.0:1", "9.2:1", "12.0:1", "6.5:1", "9.2:1", "14.0:1", "18.0:1", "18.0:1"], "hovertemplate": "W%{x}<br>正负比：%{text}<extra></extra>", "yaxis": "y2"}, "c3": {"x": [0.72, 0.72, 0.72, 0.62, 0.62, 0.78, 0.72, 0.72, 0.72, 0.72, 0.72, 0.78, 0.65], "y": [0.68, 0.65, 0.62, 0.55, 0.38, 0.68, 0.65, 0.78, 0.48, 0.76, 0.68, 0.72, 0.75], "mode": "markers+text", "marker": {"size": 14, "color": [8.0, 8.0, 8.0, 8.0, 8.0, 9.0, 8.0, 8.0, 7.0, 8.0, 8.0, 8.0, 8.0], "colorscale": "RdYlGn", "cmin": 5, "cmax": 10, "showscale": true, "colorbar": {"title": "健康度"}, "line": {"width": 1, "color": "#374151"}}, "text": ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10", "W11", "W12", "W13"], "textposition": "top right", "hovertemplate": ["W1 12/15<br>Frank：0.72（关切）<br>cmt：0.68（愉悦）<br>健康度：8/10<extra></extra>", "W2 12/22<br>Frank：0.72（温暖）<br>cmt：0.65（愉悦）<br>健康度：8/10<extra></extra>", "W3 12/29<br>Frank：0.72（温暖）<br>cmt：0.62（轻松）<br>健康度：8/10<extra></extra>", "W4 01/05<br>Frank：0.62（温暖）<br>cmt：0.55（安稳）<br>健康度：8/10<extra></extra>", "W5 01/12<br>Frank：0.62（关怀）<br>cmt：0.38（疲惫）<br>健康度：8/10<extra></extra>", "W6 01/19<br>Frank：0.78（深情）<br>cmt：0.68（信赖）<br>健康度：9/10<extra></extra>", "W7 01/26<br>Frank：0.72（深情）<br>cmt：0.65（依恋）<br>健康度：8/10<extra></extra>", "W8 02/02<br>Frank：0.72（温情）<br>cmt：0.78（眷恋）<br>健康度：8/10<extra></extra>", "W9 02/09<br>Frank：0.72（深情）<br>cmt：0.48（坦诚）<br>健康度：7/10<extra></extra>", "W10 02/16<br>Frank：0.72（温柔）<br>cmt：0.76（投入）<br>健康度：8/10<extra></extra>", "W11 02/23<br>Frank：0.72（眷恋）<br>cmt：0.68（依恋）<br>健康度：8/10<extra></extra>", "W12 03/02<br>Frank：0.78（温暖）<br>cmt：0.72（依恋）<br>健康度：8/10<extra></extra>", "W13 03/09<br>Frank：0.65（投入）<br>cmt：0.75（体贴）<br>健康度：8/10<extra></extra>"], "name": "各周"}, "c3_trend": {"x": [0.6, 0.6040816326530613, 0.6081632653061224, 0.6122448979591837, 0.6163265306122448, 0.6204081632653061, 0.6244897959183673, 0.6285714285714286, 0.6326530612244898, 0.636734693877551, 0.6408163265306123, 0.6448979591836734, 0.6489795918367347, 0.6530612244897959, 0.6571428571428571, 0.6612244897959184, 0.6653061224489796, 0.6693877551020408, 0.673469387755102, 0.6775510204081633, 0.6816326530612244, 0.6857142857142857, 0.689795918367347, 0.6938775510204082, 0.6979591836734694, 0.7020408163265306, 0.7061224489795919, 0.710204081632653, 0.7142857142857143, 0.7183673469387755, 0.7224489795918367, 0.726530612244898, 0.7306122448979592, 0.7346938775510204, 0.7387755102040816, 0.7428571428571429, 0.7469387755102042, 0.7510204081632653, 0.7551020408163266, 0.7591836734693878, 0.763265306122449, 0.7673469387755103, 0.7714285714285715, 0.7755102040816326, 0.7795918367346939, 0.7836734693877552, 0.7877551020408163, 0.7918367346938776, 0.7959183673469388, 0.8], "y": [0.5189285714285714, 0.5236584268965946, 0.5283882823646175, 0.5331181378326407, 0.5378479933006637, 0.5425778487686869, 0.5473077042367098, 0.552037559704733, 0.5567674151727562, 0.5614972706407791, 0.5662271261088023, 0.5709569815768253, 0.5756868370448485, 0.5804166925128714, 0.5851465479808946, 0.5898764034489178, 0.5946062589169407, 0.5993361143849639, 0.6040659698529869, 0.6087958253210101, 0.613525680789033, 0.6182555362570562, 0.6229853917250794, 0.6277152471931023, 0.6324451026611255, 0.6371749581291485, 0.6419048135971717, 0.6466346690651946, 0.6513645245332178, 0.6560943800012409, 0.6608242354692639, 0.6655540909372871, 0.6702839464053101, 0.6750138018733333, 0.6797436573413562, 0.6844735128093794, 0.6892033682774026, 0.6939332237454255, 0.6986630792134487, 0.7033929346814717, 0.7081227901494949, 0.712852645617518, 0.717582501085541, 0.7223123565535641, 0.7270422120215871, 0.7317720674896103, 0.7365019229576333, 0.7412317784256565, 0.7459616338936794, 0.7506914893617026], "mode": "lines", "name": "趋势线 (r=0.51)", "line": {"color": "#9CA3AF", "dash": "dash", "width": 1.5}, "hoverinfo": "skip"}, "xl": ["W1·12/15", "W2·12/22", "W3·12/29", "W4·01/05", "W5·01/12", "W6·01/19", "W7·01/26", "W8·02/02", "W9·02/09", "W10·02/16", "W11·02/23", "W12·03/02", "W13·03/09"]};
+const plotly_layout = {
+  paper_bgcolor: "rgba(0,0,0,0)",
+  plot_bgcolor:  "rgba(0,0,0,0)",
+  font: { color: "#E2E8F0", family: "Microsoft YaHei, sans-serif", size: 12 },
+  xaxis: { gridcolor: "#1E293B", zerolinecolor: "#334155", tickfont: {size: 10} },
+  yaxis: { gridcolor: "#334155", zerolinecolor: "#334155" },
+  legend: { bgcolor: "rgba(0,0,0,0)", bordercolor: "#334155", borderwidth: 1 },
+  hovermode: "closest",
+  hoverlabel: { bgcolor: "#1E293B", bordercolor: "#334155",
+                 font: {color: "#E2E8F0", size: 12} },
+  margin: { t: 20, b: 50, l: 50, r: 20 },
+};
+const config = { responsive: true, displaylogo: false,
+  modeBarButtonsToRemove: ["lasso2d","select2d"] };
+
+// Chart 1: Sentiment timeline
+Plotly.newPlot("chart1",
+  [D.c1_frank, D.c1_other, D.c1_summary],
+  Object.assign({}, plotly_layout, {
+    yaxis: { ...plotly_layout.yaxis, range: [0.2, 1.0], title: "情感得分" },
+    shapes: [{
+      type: "line", x0: 0, x1: 1, xref: "paper",
+      y0: 0.5, y1: 0.5, yref: "y",
+      line: { color: "#475569", dash: "dot", width: 1 }
+    }],
+  }),
+  config
+);
+
+// Chart 2: Health + ratio (dual axis)
+Plotly.newPlot("chart2",
+  [D.c2_health, D.c2_ratio],
+  Object.assign({}, plotly_layout, {
+    yaxis:  { ...plotly_layout.yaxis, range: [0,12], title: "关系健康度（0–10）" },
+    yaxis2: { gridcolor: "#334155", range: [0,25], title: "Gottman 正负比",
+               overlaying: "y", side: "right", showgrid: false },
+    shapes: [
+      { type:"line", x0:0, x1:1, xref:"paper", y0:7, y1:7, yref:"y",
+         line:{color:"#16A34A", dash:"dash", width:1} },
+      { type:"line", x0:0, x1:1, xref:"paper", y0:5, y1:5, yref:"y2",
+         line:{color:"#7C3AED", dash:"dot", width:1} },
+    ],
+  }),
+  config
+);
+
+// Chart 3: Correlation
+Plotly.newPlot("chart3",
+  [D.c3, D.c3_trend],
+  Object.assign({}, plotly_layout, {
+    xaxis: { ...plotly_layout.xaxis, title: "Frank 情感得分", range:[0.55, 0.85] },
+    yaxis: { ...plotly_layout.yaxis, title: "对方 (cmt) 情感得分", range:[0.3, 0.85] },
+  }),
+  config
+);
+</script>
+</body>
+</html>

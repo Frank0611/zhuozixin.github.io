@@ -90,6 +90,9 @@ const App: React.FC = () => {
           ))}
         </Swiper>
       </motion.div>
+
+      {/* Analysis report link */}
+      <a className="analysis-link" href="/analysis.html">📊 情感分析报告</a>
     </div>
   );
 };
